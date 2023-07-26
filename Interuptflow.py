@@ -1,71 +1,65 @@
 import random
 import argparse
 from termcolor import colored
-import heapq
 
 from enum import Enum
 
-class Activity(Enum):
+class ActivityType(Enum):
     WORK = "work"
     REVIEW = "review"
     TEST = "test"
-
-class TaskQueue:
-    def __init__(self):
-        self._queue = []
-
-    def add_task(self, task):
-        heapq.heappush(self._queue, (task.priority, task))
-        
-    def get_task(self):
-        return heapq.heappop(self._queue)[1]
-
-    def is_empty(self):
-        return len(self._queue) == 0
-        
+    
+class Activity:
+    def __init__(self, members, type: ActivityType, progress_tick: int):
+        self.members = members
+        self.type = type
+        self.progress_tick = progress_tick
+    
 class Task:
+    # This class represents a single task to be performed by one or more team members.
+
     def __init__(self, id, priority, ramp_up_time, ramp_down_time, work_time):
+        # The constructor initializes the task with an ID, priority, ramp-up time, ramp-down time, and work time.
+        # The color of the task is randomly chosen from a list of colors.
+        # An activity log is initialized to store the activities performed on this task.
+        
         self.id = id
         self.priority = priority
         self.ramp_up_time = ramp_up_time
         self.ramp_down_time = ramp_down_time
         self.work_time = work_time
+        self.progress = 0
+        self.review = 0
+        self.test = 0
         self.color = random.choice(['red', 'green', 'yellow', 'blue', 'magenta', 'cyan'])
-        self.activity_log = []  # List to store activity log entries
-
-    def work(self, members, timestamp):
-        for member in members:
-            self.activity_log.append({
-                'member_id': member.id,
-                'activity': Activity.WORK,
-                'timestamp': timestamp
-            }) 
+        self.activity_log = []  
+ 
+    def work(self, members, factor):
+        # The 'work' method adds a 'WORK' activity for each member working on this task to the activity log.
+        self.progress += 1*factor
+        self.activity_log.append(Activity(members,ActivityType.WORK, self.progress))
         
     def review(self, members, timestamp):
-         for member in members:
-            self.activity_log.append({
-                'member_id': member.id,
-                'activity': Activity.REVIEW,
-                'timestamp': timestamp
-            })
-    
+        # The 'review' method adds a 'REVIEW' activity for each member reviewing this task to the activity log.
+        self.review += 1
+        self.activity_log.append(Activity(members,ActivityType.REVIEW, self.review))
+
     def test(self, members, timestamp):
-        for member in members:
-            self.activity_log.append({
-                'member_id': member.id,
-                'activity': Activity.TEST,
-                'timestamp': timestamp
-            })
+        # The 'test' method adds a 'TEST' activity for each member testing this task to the activity log.
+        self.test += 1
+        self.activity_log.append(Activity(members,ActivityType.REVIEW, self.test))
+
     def tested(self):
-        return any(log['activity'] == Activity.TEST for log in self.activity_log)
-    
+        return self.test > 0
+
     def reviewed(self):
-        return any(log['activity'] == Activity.REVIEW for log in self.activity_log)
+        return self.review > 0
     
     def is_done(self):
-        total_progress = sum(log['activity'] == Activity.WORK for log in self.activity_log)
-        return total_progress == self.work_time and self.tested() and self.reviewed()
-    
+        # The 'is_done' method checks if the task is completed.
+        # A task is considered completed if its total progress time equals its work time and it has been both tested and reviewed.
+        return self.progress >= self.work_time and self.tested() and self.reviewed()
+ 
 class Member:
     def __init__(self, id, interruptible):
         self.id = id
@@ -96,10 +90,8 @@ def simulate(scenario):
     # Create a set of tasks
     tasks = [Task(i, i, args.ramp_up, args.ramp_down, 15) for i in range(scenario.num_tasks)]
     
-    task_Queue = TaskQueue()
     
-    for task in tasks:
-        task_Queue.add_task(task)
+    
 
    # Create members
     members = [Member(i,scenario.interruptible) for i in range(scenario.num_members)]
