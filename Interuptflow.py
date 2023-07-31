@@ -1,7 +1,7 @@
 import random
 import argparse
+from faker import Faker
 from termcolor import colored
-
 from enum import Enum
 
 class ActivityType(Enum):
@@ -9,6 +9,10 @@ class ActivityType(Enum):
     REVIEW = "review"
     TEST = "test"
     
+class CollaborationMode(Enum):
+    ALONE = "alone"
+    MOB = "mob"
+
 class Activity:
     def __init__(self, members, type: ActivityType, progress_tick: int):
         self.members = members
@@ -39,14 +43,14 @@ class Task:
         self.progress += 1*factor
         self.activity_log.append(Activity(members,ActivityType.WORK, self.progress))
         
-    def review(self, members, timestamp):
+    def review(self, members, factor):
         # The 'review' method adds a 'REVIEW' activity for each member reviewing this task to the activity log.
-        self.review += 1
+        self.review += 1*factor
         self.activity_log.append(Activity(members,ActivityType.REVIEW, self.review))
 
-    def test(self, members, timestamp):
+    def test(self, members, factor):
         # The 'test' method adds a 'TEST' activity for each member testing this task to the activity log.
-        self.test += 1
+        self.test += 1*factor
         self.activity_log.append(Activity(members,ActivityType.REVIEW, self.test))
 
     def tested(self):
@@ -61,62 +65,38 @@ class Task:
         return self.progress >= self.work_time and self.tested() and self.reviewed()
  
 class Member:
-    def __init__(self, id, interruptible):
+    def __init__(self, id, name):
         self.id = id
+        self.name = name
         self.current_task = None
-        self.interruptible = interruptible
 
-    def work(self, task_Queue):
+class Team:
+    def __init__(self, id, name, size:int, interruptible) -> None:
+        self.id = id
+        self.size = size
+        fake = Faker('de_DE')
         
-        if not self.current_task and not task_Queue.is_empty():
-            self.current_task = task_Queue.get_task()
-            
-        if self.current_task:
-            print(colored(f"Member {self.id} is working on task {self.current_task.id}", self.current_task.color))
-            self.current_task.work()
-            if self.current_task.progress == self.current_task.work_time:
-                print(colored(f"Member {self.id} completed task {self.current_task.id}", self.current_task.color))
-                self.current_task = None
-        else:
-            print(colored(f"Task queue is empty"))
-                      
+        #create members
+        self.members = [Member(i, fake.name()) for i in range(size)]
+        
+    #teamworks adds one progress tick to open tasks
+    def teamwork(self)-> None:
+        pass
+        
+          
 class Scenario:
-    def __init__(self, num_members, num_tasks, interruptible):
+    def __init__(self, num_members, num_tasks, duration, interruptible):
         self.num_members = num_members
         self.num_tasks = num_tasks
+        self.duration = duration
         self.interruptible = interruptible
+        
  
 def simulate(scenario):
-    # Create a set of tasks
-    tasks = [Task(i, i, args.ramp_up, args.ramp_down, 15) for i in range(scenario.num_tasks)]
+    team = Team(1, "Transformers", scenario.num_members, scenario.interruptible)
     
-    
-    
-
-   # Create members
-    members = [Member(i,scenario.interruptible) for i in range(scenario.num_members)]
-
-    # The members work until all tasks are done
-    while tasks or any(member.current_task for member in members):
-        for member in members:
-            member.work(task_Queue)
-            
-    
-    total_durations = []
-    for member in members:
-        print(f"\nSummary for member {member.id} (interruptible: {member.interruptible}):")
-        print(f"Total ramp-up time: {member.ramp_up_time} minutes")
-        print(f"Total work time: {member.work_time} minutes")
-        print(f"Total ramp-down time: {member.ramp_down_time} minutes")
-        total_duration = member.ramp_up_time + member.work_time + member.ramp_down_time
-        print(f"Total duration: {total_duration} minutes")
-        total_duration = sum(member.ramp_up_time + member.work_time + member.ramp_down_time for member in members)
-    return {
-        'num_members': scenario.num_members,
-        'num_tasks': scenario.num_tasks,
-        'interruptible': scenario.interruptible,
-        'total_duration': total_duration
-    }
+    for tick in range(scenario.duration):
+        team.teamwork()
         
 # Parse command line arguments for ramp-up and ramp-down times
 parser = argparse.ArgumentParser()
@@ -126,20 +106,11 @@ args = parser.parse_args()
 
 # Define scenarios
 scenarios = [
-    Scenario(1, 10, False),  # One member, 10 tasks, not interruptible
-    Scenario(1, 10, True),   # One member, 10 tasks, interruptible
-    Scenario(2, 10, False),  # Two members, 10 tasks, not interruptible
-    Scenario(2, 10, True),   # Two members, 10 tasks, interruptible
+    Scenario(1, 10, 10, False),  # One member, 10 tasks, not interruptible
+    Scenario(1, 10, 10, True),   # One member, 10 tasks, interruptible
+    Scenario(2, 10, 10, False),  # Two members, 10 tasks, not interruptible
+    Scenario(2, 10, 10, True),   # Two members, 10 tasks, interruptible
 ]
 
-# Simulate each scenario and store total durations
-results = []
-for scenario in scenarios:
-    print(f"\nSimulating scenario: {scenario.num_members} member(s), {scenario.num_tasks} tasks, interruptible: {scenario.interruptible}")
-    result = simulate(scenario)
-    results.append(result)
+simulate(scenarios[0])
 
-# After all scenarios are done, print total durations along with scenario properties
-print("\nTotal durations for all scenarios:")
-for result in results:
-    print(f"Scenario with {result['num_members']} member(s), {result['num_tasks']} tasks, interruptible: {result['interruptible']}: {result['total_duration']} minutes")
