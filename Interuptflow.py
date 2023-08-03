@@ -162,7 +162,7 @@ class Task:
         ramp_down_time = 0
         for activity in self.activity_log:
             if activity.type == ActivityType.RAMP_DOWN:
-                ramp_up_time -= activity.progress_step
+                ramp_down_time -= activity.progress_step
         
         return ramp_up_time, ramp_down_time
  
@@ -221,26 +221,26 @@ class Team:
                     #print(f'Members {member_names} worked on task {task.id}')
                     
                     if task.work_completed():
-                        print(f'Members {member_names} completed the work on task {task.id}')
+                        #print(f'Members {member_names} completed the work on task {task.id}')
                         task.stop_working()
 
                 elif not task.tested() and task.work_completed():
                     # If work is completed but not tested, start testing
+                    task.start_testing()
                     task.test(working_members, 1.0)
                     #print(f'Members {member_names} tested task {task.id}')
                     # Unassign the task on all members
-                    for member in working_members:
-                        member.current_task = None
+                    if task.tested():
+                        task.stop_testing()
+                    
                 elif not task.reviewed() and task.tested():
-                    # If work is completed and tested but not reviewed, start reviewing
+
                     task.review(working_members, 1.0)
                     #print(f'Members {member_names} reviewed task {task.id}')
-                    # Unassign the task on all members
-                    for member in working_members:
-                        member.current_task = None
                     
-        
-          
+                    if task.reviewed():
+                        task.stop_reviewing()
+                    
 class Scenario:
     def __init__(self,id, num_members, num_tasks, duration, interruptible, description):
         self.id = id
