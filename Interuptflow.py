@@ -26,6 +26,7 @@ class Activity:
         self.type = type
         self.progress_step = progress_step
     
+
 class Task:
     # This class represents a single task to be performed by one or more team members.
 
@@ -141,7 +142,8 @@ class Task:
         return self.test_progress > 0.1 * self.time_to_complete
 
     def reviewed(self):
-        return self.review_progress > 0.05 * self.time_to_complete
+        review_Factor = 0.05
+        return self.review_progress > review_Factor * self.time_to_complete
     
     def is_done(self):
         # The 'is_done' method checks if the task is completed.
@@ -250,7 +252,6 @@ class Scenario:
         self.interruptible = interruptible
         self.description = description
     
-    
 # Assuming you have a list of tasks
 def count_completed_tasks(tasks):
     return sum(task.is_done() for task in tasks)
@@ -301,11 +302,10 @@ scenarios = [
     Scenario(1, 1, 10, 4800, False, "One member, 10 tasks, not interruptible"),  # One member, 10 tasks, not interruptible
     Scenario(2, 1, 10, 4800, True, "One member, 10 tasks, interruptible"),   # One member, 10 tasks, interruptible
     Scenario(3, 2, 10, 4800, False, "Two members, 10 tasks, not interruptible"),  # Two members, 10 tasks, not interruptible
-    Scenario(4, 2, 10, 4800, True, "Two members, 10 tasks, interruptible"),   # Two members, 10 tasks, interruptible
+    Scenario(4, 1, 10, 4800, True, "Two members, 10 tasks, interruptible"),   # Two members, 10 tasks, interruptible
 ]
 
-simulate(scenarios[0])
-simulate(scenarios[1])
-simulate(scenarios[2])
-simulate(scenarios[3])
+
+for scenario in scenarios:
+    simulate(scenario)
 

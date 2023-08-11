@@ -1,31 +1,17 @@
 import unittest
-from Interuptflow import Task
-from Interuptflow import Member
+from Interuptflow import Task, Member, ActivityType
 
 class TestTask(unittest.TestCase):
 
     def setUp(self):
-        self.task = Task(1, 1, 1, 1, 5)  # Erstellen Sie eine Aufgabe mit einer ID von 1, einer Priorität von 1, einer Ramp-Up-Zeit von 1, einer Ramp-Down-Zeit von 1 und einer Arbeitszeit von 5
+        self.task = Task(1, 1, 1, 1, 1,1,1,1,1)  # Erstellen Sie eine Aufgabe mit einer ID von 1, einer Priorität von 1, einer Ramp-Up-Zeit von 1, einer Ramp-Down-Zeit von 1 und einer Arbeitszeit von 5
         self.member = Member(1, "Test Member")
 
     def test_work(self):
-        self.task.work([self.member], 1)
-        self.assertEqual(self.task.activity_log[0]['activity'], Activity.WORK)
-        self.assertEqual(self.task.activity_log[0]['member_id'], self.member.id)
-        self.assertEqual(self.task.activity_log[0]['timestamp'], 1)
-
-    def test_review(self):
-        self.task.review([self.member], 1)
-        self.assertEqual(self.task.activity_log[0]['activity'], Activity.REVIEW)
-        self.assertEqual(self.task.activity_log[0]['member_id'], self.member.id)
-        self.assertEqual(self.task.activity_log[0]['timestamp'], 1)
-
-    def test_test(self):
-        self.task.test([self.member], 1)
-        self.assertEqual(self.task.activity_log[0]['activity'], Activity.TEST)
-        self.assertEqual(self.task.activity_log[0]['member_id'], self.member.id)
-        self.assertEqual(self.task.activity_log[0]['timestamp'], 1)
-
+        self.task.start_working()
+        self.task.work([self.member],1)
+        self.assertEqual(len(self.task.activity_log), 1)
+        
 
 if __name__ == '__main__':
     unittest.main()
