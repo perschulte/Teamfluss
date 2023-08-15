@@ -11,7 +11,9 @@ class TestTask(unittest.TestCase):
         self.task.start_working()
         self.task.work([self.member],1)
         self.assertEqual(len(self.task.activity_log), 1)
-        
+
+    def test_activity(self):
+        pass        
 
 if __name__ == '__main__':
     unittest.main()

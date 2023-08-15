@@ -4,12 +4,18 @@ from faker import Faker
 from termcolor import colored
 from enum import Enum
 
-class ActivityType(Enum):
+class ActivityName(Enum):
     WORK = "work"
+    WORK_RAMP_UP = "work_ramp_up"
+    WORK_RAMP_DOWN = "work_ramp_down"
+
     REVIEW = "review"
+    REVIEW_RAMP_UP = "review_ramp_up"
+    REVIEW_RAMP_DOWN = "review_ramp_down"
+
     TEST = "test"
-    RAMP_UP = "ramp_up"
-    RAMP_DOWN = "ramp_down"
+    TEST_RAMP_UP = "test_ramp_up"
+    TEST_RAMP_DOWN = "test_ramp_down"
     
 class CollaborationMode(Enum):
     ALONE = "alone"
@@ -20,17 +26,23 @@ class State(Enum):
     IN_PROGRESS = "in_progress"
     DONE = "done"
 
+class ActivityType:
+    def __init__(self, name, time_to_complete, ramp_up, ramp_down) -> None:
+        self.name = name
+        self.time_to_complete = time_to_complete
+        self.ramp_up = ramp_up
+        self.ramp_down = ramp_down
+
 class Activity:
-    def __init__(self, members, type: ActivityType, progress_step):
+    def __init__(self, members, type: ActivityName, progress_step):
         self.members = members
         self.type = type
         self.progress_step = progress_step
-    
 
 class Task:
     # This class represents a single task to be performed by one or more team members.
 
-    def __init__(self, id, priority, time_to_complete_ramp_up_time, time_to_complete_ramp_down_time, review_ramp_up_time, review_ramp_down_time, test_ramp_up_time, test_ramp_down_time, time_to_complete):
+    def __init__(self, id, priority, work_type, test_type, review_type):
         # The constructor initializes the task with an ID, priority, ramp-up time, ramp-down time, and work time.
         # The color of the task is randomly chosen from a list of colors.
         # An activity log is initialized to store the activities performed on this task.
@@ -39,116 +51,112 @@ class Task:
         self.priority = priority
         self.state = State.OPEN
         
+        self.work_type = work_type
+        self.test_type = test_type
+        self.review_type = review_type
+        
         self.time_to_complete_progress = 0
-        self.time_to_complete = time_to_complete
-        self.time_to_complete_ramp_up_remaining = time_to_complete_ramp_up_time
-        self.time_to_complete_ramp_up_time = time_to_complete_ramp_up_time
-        self.time_to_complete_ramp_down_remaining = time_to_complete_ramp_down_time
-        self.time_to_complete_ramp_down_time = time_to_complete_ramp_down_time
+        self.time_to_complete_ramp_up_remaining = work_type.ramp_up
+        self.time_to_complete_ramp_down_remaining = work_type.ramp_down
         
         self.review_progress = 0
-        self.review_ramp_up_remaining = review_ramp_up_time
-        self.review_ramp_up_time = review_ramp_up_time
-        self.review_ramp_down_remaining = review_ramp_down_time
-        self.review_ramp_down_time = review_ramp_down_time
+        self.review_ramp_up_remaining = review_type.ramp_up
+        self.review_ramp_down_remaining = review_type.ramp_down
         
         self.test_progress = 0
-        self.test_ramp_up_remaining = test_ramp_up_time
-        self.test_ramp_up_time = test_ramp_up_time
-        self.test_ramp_down_remaining = test_ramp_down_time
-        self.test_ramp_down_time = test_ramp_down_time
+        self.test_ramp_up_remaining = test_type.ramp_up
+        self.test_ramp_down_remaining = test_type.ramp_down
 
         self.color = random.choice(['red', 'green', 'yellow', 'blue', 'magenta', 'cyan'])
         self.activity_log = []
           
     def start_working(self):
         if self.state == State.OPEN:
-            self.time_to_complete_ramp_up_remaining = self.time_to_complete_ramp_up_time
+            self.time_to_complete_ramp_up_remaining = self.work_type.ramp_up
             self.state = State.IN_PROGRESS  
             
     def work(self, members, factor):
         # The 'work' method adds a 'WORK' activity for each member working on this task to the activity log.
         if self.time_to_complete_ramp_up_remaining > 0:
             self.time_to_complete_ramp_up_remaining -= 1*factor
-            self.activity_log.append(Activity(members,ActivityType.RAMP_UP, -1*factor))
+            self.activity_log.append(Activity(members,ActivityName.WORK_RAMP_UP, -1*factor))
         elif self.time_to_complete_ramp_down_remaining > 0:
             self.time_to_complete_ramp_down_remaining -= 1*factor
-            self.activity_log.append(Activity(members,ActivityType.RAMP_DOWN, -1*factor))
+            self.activity_log.append(Activity(members,ActivityName.WORK_RAMP_DOWN, -1*factor))
             if self.time_to_complete_ramp_down_remaining <=0:
                 for member in members:
                     member.current_task = None
         else:
             self.time_to_complete_progress += 1*factor
-            self.activity_log.append(Activity(members,ActivityType.WORK, 1*factor))
+            self.activity_log.append(Activity(members,ActivityName.WORK, 1*factor))
 
     def stop_working(self):
         if self.state == State.IN_PROGRESS:
-            self.time_to_complete_ramp_down_remaining = self.time_to_complete_ramp_down_time
+            self.time_to_complete_ramp_down_remaining = self.work_type.ramp_down
             self.state = State.OPEN    
     def start_reviewing(self):
         if self.state == State.OPEN:
-            self.review_ramp_up_remaining = self.review_ramp_up_time
+            self.review_ramp_up_remaining = self.review_type.ramp_up
             self.state = State.IN_PROGRESS
         
     def review(self, members, factor):
         # The 'review' method adds a 'REVIEW' activity for each member reviewing this task to the activity log.
         if self.review_ramp_up_remaining > 0:
             self.review_ramp_up_remaining -= 1*factor
-            self.activity_log.append(Activity(members,ActivityType.RAMP_UP, -1*factor))
+            self.activity_log.append(Activity(members,ActivityName.REVIEW_RAMP_UP, -1*factor))
         elif self.review_ramp_down_remaining > 0:
             self.review_ramp_down_remaining -= 1*factor
-            self.activity_log.append(Activity(members,ActivityType.RAMP_DOWN, -1*factor))
+            self.activity_log.append(Activity(members,ActivityName.REVIEW_RAMP_DOWN, -1*factor))
             if self.review_ramp_down_remaining <=0:
                 for member in members:
                     member.current_task = None
         else:
             self.review_progress += 1*factor
-            self.activity_log.append(Activity(members,ActivityType.REVIEW, 1*factor))
+            self.activity_log.append(Activity(members,ActivityName.REVIEW, 1*factor))
 
     def stop_reviewing(self):
         if self.state == State.IN_PROGRESS:
-            self.review_ramp_down_remaining = self.review_ramp_down_time
+            self.review_ramp_down_remaining = self.review_type.ramp_down
             self.state = State.OPEN
             
     def start_testing(self):
         if self.state == State.OPEN:
-            self.test_ramp_up_remaining = self.test_ramp_up_time
+            self.test_ramp_up_remaining = self.test_type.ramp_up
             self.state = State.IN_PROGRESS
             
     def test(self, members, factor):
         # The 'test' method adds a 'TEST' activity for each member testing this task to the activity log.
         if self.test_ramp_up_remaining > 0:
             self.test_ramp_up_remaining -= 1*factor
-            self.activity_log.append(Activity(members,ActivityType.RAMP_UP, -1*factor))
+            self.activity_log.append(Activity(members,ActivityName.TEST_RAMP_UP, -1*factor))
         elif self.test_ramp_down_remaining > 0:
             self.test_ramp_down_remaining -= 1*factor
-            self.activity_log.append(Activity(members,ActivityType.RAMP_DOWN, -1*factor))
+            self.activity_log.append(Activity(members,ActivityName.TEST_RAMP_DOWN, -1*factor))
             if self.test_ramp_down_remaining <=0:
                 for member in members:
                     member.current_task = None
         else:
             self.test_progress += 1*factor
-            self.activity_log.append(Activity(members,ActivityType.TEST, self.test))
+            self.activity_log.append(Activity(members,ActivityName.TEST, self.test))
     
     def stop_testing(self):
         if self.state == State.IN_PROGRESS:
-            self.test_ramp_down_remaining = self.test_ramp_down_time
+            self.test_ramp_down_remaining = self.test_type.ramp_down
             self.state = State.OPEN
         
     def work_completed(self):
-        return self.time_to_complete_progress >= self.time_to_complete
+        return self.time_to_complete_progress >= self.work_type.time_to_complete
     
     def tested(self):
-        return self.test_progress > 0.1 * self.time_to_complete
+        return self.test_progress > self.test_type.time_to_complete
 
     def reviewed(self):
-        review_Factor = 0.05
-        return self.review_progress > review_Factor * self.time_to_complete
+        return self.review_progress >  self.review_type.time_to_complete
     
     def is_done(self):
         # The 'is_done' method checks if the task is completed.
         # A task is considered completed if its total progress time equals its work time and it has been both tested and reviewed.
-        return self.time_to_complete_progress >= self.time_to_complete and self.tested() and self.reviewed()
+        return self.time_to_complete_progress >= self.work_type.time_to_complete and self.tested() and self.reviewed()
     
     def assign_members(self, members):
         for member in members:
@@ -156,17 +164,38 @@ class Task:
         
             
     def get_ramp_times(self):
-        ramp_up_time = 0
+        work_ramp_up = 0
         for activity in self.activity_log:
-            if activity.type == ActivityType.RAMP_UP:
-                ramp_up_time -= activity.progress_step
+            if activity.type == ActivityName.WORK_RAMP_UP:
+                work_ramp_up -= activity.progress_step
         
-        ramp_down_time = 0
+        work_ramp_down = 0
         for activity in self.activity_log:
-            if activity.type == ActivityType.RAMP_DOWN:
-                ramp_down_time -= activity.progress_step
+            if activity.type == ActivityName.WORK_RAMP_DOWN:
+                work_ramp_down -= activity.progress_step
         
-        return ramp_up_time, ramp_down_time
+        test_ramp_up = 0
+        for activity in self.activity_log:
+            if activity.type == ActivityName.TEST_RAMP_UP:
+                test_ramp_up -= activity.progress_step
+        
+        test_ramp_down = 0
+        for activity in self.activity_log:
+            if activity.type == ActivityName.TEST_RAMP_DOWN:
+                test_ramp_down -= activity.progress_step
+        
+        review_ramp_up = 0
+        for activity in self.activity_log:
+            if activity.type == ActivityName.REVIEW_RAMP_UP:
+                review_ramp_up -= activity.progress_step
+        
+        review_ramp_down = 0
+        for activity in self.activity_log:
+            if activity.type == ActivityName.REVIEW_RAMP_DOWN:
+                review_ramp_down -= activity.progress_step
+        
+        
+        return work_ramp_up, work_ramp_down, test_ramp_up, test_ramp_down, review_ramp_up, review_ramp_down
  
 class Member:
     def __init__(self, id, name):
@@ -260,18 +289,30 @@ def count_incomplete_tasks(tasks):
     return sum(not task.is_done() for task in tasks)
 
 def calculate_total_ramp_times(tasks):
-        total_ramp_up_time = 0
-        total_ramp_down_time = 0
+        total_work_ramp_up = 0
+        total_work_ramp_down = 0
+        total_test_ramp_up = 0
+        total_test_ramp_down = 0 
+        total_review_ramp_up = 0 
+        total_review_ramp_down = 0
         for task in tasks:
-            ramp_up_time, ramp_down_time = task.get_ramp_times()
-            total_ramp_up_time += ramp_up_time
-            total_ramp_down_time += ramp_down_time
-        return total_ramp_up_time, total_ramp_down_time
+            work_ramp_up, work_ramp_down, test_ramp_up, test_ramp_down, review_ramp_up, review_ramp_down = task.get_ramp_times()
+            total_work_ramp_up += work_ramp_up
+            total_work_ramp_down += work_ramp_down
+            total_test_ramp_up += test_ramp_up
+            total_test_ramp_down += test_ramp_down
+            total_review_ramp_up += review_ramp_up
+            total_review_ramp_down += review_ramp_down
+            
+        return total_work_ramp_up, total_work_ramp_down, total_test_ramp_up, total_test_ramp_down, total_review_ramp_up, total_review_ramp_down
  
          
 def simulate(scenario):
     print(f"=== Starting Simulation for Scenario {scenario.id} ===")
-    tasks = [Task(i,i,7,4,4,1,7,4,480) for i in range(scenario.num_tasks)]
+    work_activity_type = ActivityType(ActivityName.WORK, 480, 7, 4)
+    test_activity_type = ActivityType(ActivityName.TEST, 480*0.1, 7, 4)
+    review_activity_type = ActivityType(ActivityName.REVIEW, 480*0.05, 7, 4)
+    tasks = [Task(i,i,work_activity_type, test_activity_type, review_activity_type) for i in range(scenario.num_tasks)]
     
     team = Team(1, "Transformers", scenario.num_members, tasks, scenario.interruptible, CollaborationMode.ALONE)
     
@@ -286,8 +327,11 @@ def simulate(scenario):
     print(f"\nCompleted tasks: {completed_tasks}")
     print(f"Incomplete tasks: {incomplete_tasks}")
     
-    total_ramp_up_time, total_ramp_down_time = calculate_total_ramp_times(tasks)
-    print(f"For scenario {scenario.id}, total ramp-up time was {total_ramp_up_time} and total ramp-down time was {total_ramp_down_time}")
+    work_ramp_up, work_ramp_down, test_ramp_up, test_ramp_down, review_ramp_up, review_ramp_down = calculate_total_ramp_times(tasks)
+    print(f"For scenario {scenario.id}, total ramp-up and ramp-down was:\n")
+    print(f"WORK: {work_ramp_up} / {work_ramp_down}\n")
+    print(f"TEST: {test_ramp_up} / {test_ramp_down}\n")
+    print(f"REVIEW: {review_ramp_up} / {review_ramp_down}\n")
     print(f"=== End of Simulation for Scenario {scenario.id} ===\n")
     
         
